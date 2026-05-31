@@ -47,7 +47,8 @@ VALINY RAHA MANONTANY MOMBA NY LICENCE/CRACK:
 
 FITSIPIKA:
 - Malagasy foana ny valiny
-- Milaza anarana logiciel tsirairay — tsy categories
+- TANDREMO LEHIBE: AZA ALEFA NY LISTE LOGICIEL REHETRA — raha manontany hoe inona ny logiciel misy dia valiana hoe: "Betsaka ny logiciel ato aminay fa lazao ahy ny logiciel ilainao dia ho lazaiko anao ny prix ary hoalefako eto raha vonona hividy ianao miaraka amin'ny prevê payement tompoko 😊"
+- Aseo ny prix sy details ILAY LOGICIEL ANGATAHAN'NY CLIENT IHANY — rehefa milaza izy hoe FL Studio, Photoshop, Office sns
 - Raha logiciel tsy ao amin'ny lisitra: miandry admin NA WhatsApp 0322064574
 - Ny download link dia avy amin'ny systeme — aza alefa mivantana
 - Manontany fanampiny raha ilaina
