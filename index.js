@@ -2,11 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const { chat, verifyPaymentScreenshot, clearHistory } = require('./claude');
-const { sendTextMessage, sendQuickReplies } = require('./messenger');
+const { sendTextMessage } = require('./messenger');
 const { getProductByName, getAllProducts, getProductById } = require('./products');
 const { startPaymentSession, getPaymentSession, updatePaymentStatus, clearPaymentSession, incrementAttempts, isReferenceUsed, markReferenceUsed } = require('./payments');
 const { createDownloadToken, validateAndConsumeToken } = require('./tokens');
-const { getTelegramFileUrl } = require('./telegram');
 
 const app = express();
 app.use(express.json());
@@ -15,7 +14,6 @@ const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'my_verify_token_123';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const MAX_PAYMENT_ATTEMPTS = 3;
 
-// ─── Facebook Webhook Verification ───────────────────────────────────────────
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
@@ -27,38 +25,27 @@ app.get('/webhook', (req, res) => {
   res.sendStatus(403);
 });
 
-// ─── Facebook Webhook Events ──────────────────────────────────────────────────
 app.post('/webhook', async (req, res) => {
   const body = req.body;
   if (body.object !== 'page') return res.sendStatus(404);
-
   console.log('[WEBHOOK] Message tonga! entry:', JSON.stringify(body.entry));
-  res.sendStatus(200); // Valiana haingana Facebook
+  res.sendStatus(200);
 
   for (const entry of body.entry || []) {
     for (const event of entry.messaging || []) {
       const psid = event.sender.id;
-
-      // Message avy amin'ny client
       if (event.message) {
-        // Sary (screenshot payment)
         if (event.message.attachments) {
-          const imageAttachment = event.message.attachments.find(
-            (a) => a.type === 'image'
-          );
+          const imageAttachment = event.message.attachments.find(a => a.type === 'image');
           if (imageAttachment) {
             await handlePaymentScreenshot(psid, imageAttachment.payload.url);
             continue;
           }
         }
-
-        // Texte
         if (event.message.text) {
           await handleTextMessage(psid, event.message.text);
         }
       }
-
-      // Postback (bouton clicked)
       if (event.postback) {
         await handleTextMessage(psid, event.postback.payload);
       }
@@ -66,71 +53,56 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// ─── Handler: Text Message ────────────────────────────────────────────────────
 async function handleTextMessage(psid, text) {
   try {
     const session = getPaymentSession(psid);
 
-    // Raha miandry screenshot ny session fa mandefa texte
     if (session && session.status === 'waiting_screenshot') {
-      // Jereo raha mangataka hanova logiciel
       if (text.toLowerCase().includes('hanova') || text.toLowerCase().includes('hafa')) {
         clearPaymentSession(psid);
         clearHistory(psid);
         await sendTextMessage(psid, 'Tsara! Hanomboka indray. Inona ny logiciel tianao?');
         return;
       }
-      await sendTextMessage(
-        psid,
-        'Miandry ny screenshot confirmation payment aho. Raha tsy mbola vita ny payment, azonao atao izany aloha, ary mandefa screenshot avy eo.'
-      );
+      await sendTextMessage(psid, 'Miandry ny screenshot confirmation payment aho. Mandefa screenshot azafady.');
       return;
     }
 
-    // Jereo raha misy logiciel voatondro sy te hividy
-    const buyIntent =
-      text.toLowerCase().includes('mividy') ||
+    // Detect buy intent
+    const buyIntent = text.toLowerCase().includes('mividy') ||
       text.toLowerCase().includes('buy') ||
       text.toLowerCase().includes('order') ||
+      text.toLowerCase().includes('te hividy') ||
       text.toLowerCase().includes('baiko');
 
     if (buyIntent) {
-      // Hikaroka logiciel ao amin'ny message
       const allProducts = getAllProducts();
-      let matchedProduct = null;
+      const matchedProducts = [];
+
       for (const p of allProducts) {
         if (text.toLowerCase().includes(p.name.toLowerCase())) {
-          matchedProduct = p;
-          break;
+          matchedProducts.push(p);
         }
       }
 
-      if (matchedProduct) {
-        startPaymentSession(psid, matchedProduct.id, matchedProduct.name, matchedProduct.price);
-        await sendTextMessage(
-          psid,
-          `Tsara! ${matchedProduct.name} — ${matchedProduct.price.toLocaleString()} Ar.\n\n` +
-          `Alefaso ny payment amin'ny:\n` +
-          `💚 MVola: 034 XX XXX XX\n` +
-          `🟠 Orange Money: 032 XX XXX XX\n\n` +
-          `Rehefa vita, mandefa screenshot ny confirmation azafady. Miandry aho! 🙏`
-        );
+      if (matchedProducts.length > 0) {
+        const totalAmount = matchedProducts.reduce((sum, p) => sum + p.price, 0);
+        const productList = matchedProducts.map(p => `• ${p.name} — ${p.price.toLocaleString()} Ar`).join('\n');
+
+        startPaymentSession(psid, matchedProducts);
+
+        let message = `Tsara! Ireto ny baiko:\n\n${productList}\n\n`;
+        if (matchedProducts.length > 1) {
+          message += `💰 Total: ${totalAmount.toLocaleString()} Ar\n\n`;
+        }
+        message += `Alefao ny vola amin'ny:\n💚 MVola: 0344192129 (JHON ROCH TONNY)\n🟠 Orange Money: 0322064574 (JHON ROCH TONNY)\n\nRehefa vita, mandefa screenshot ny confirmation azafady 🙏`;
+
+        await sendTextMessage(psid, message);
         return;
       }
     }
 
-    // Default: Claude no miresaka
     const reply = await chat(psid, text);
-
-    // Jereo raha namaly Claude hoe mividy (detect product mention)
-    const allProducts = getAllProducts();
-    for (const p of allProducts) {
-      if (reply.toLowerCase().includes(p.name.toLowerCase()) && buyIntent) {
-        startPaymentSession(psid, p.id, p.name, p.price);
-        break;
-      }
-    }
-
     await sendTextMessage(psid, reply);
   } catch (err) {
     console.error('[handleTextMessage] Error:', err.message);
@@ -138,12 +110,10 @@ async function handleTextMessage(psid, text) {
   }
 }
 
-// ─── Handler: Payment Screenshot ─────────────────────────────────────────────
 async function handlePaymentScreenshot(psid, imageUrl) {
   const session = getPaymentSession(psid);
 
   if (!session) {
-    // Tsy misy session payment — Claude no mamaly
     const reply = await chat(psid, '[Mpanjifa nandefasa sary]');
     await sendTextMessage(psid, reply);
     return;
@@ -153,107 +123,81 @@ async function handlePaymentScreenshot(psid, imageUrl) {
   updatePaymentStatus(psid, 'verifying');
 
   try {
-    // Alaina ny sary amin'ny URL Facebook
     const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
     const imageBase64 = Buffer.from(imageResponse.data).toString('base64');
     const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
 
-    // Claude Vision manamarina
-    const product = getProductById(session.productId);
     const result = await verifyPaymentScreenshot(
-      imageBase64,
-      contentType,
-      session.amount,
-      session.productName
+      imageBase64, contentType, session.amount, session.productName
     );
 
     if (result.success) {
-      // Jereo raha efa nampiasaina ilay référence
+      // Check reference fraud
       if (result.reference && isReferenceUsed(result.reference)) {
         updatePaymentStatus(psid, 'waiting_screenshot');
-        await sendTextMessage(psid, '❌ Efa nampiasaina taloha ilay screenshot. Alefao ny screenshot avy amin'ny payment vaovao azafady.');
+        await sendTextMessage(psid, '❌ Efa nampiasaina taloha ilay screenshot. Alefao ny screenshot avy amin\'ny payment vaovao azafady.');
         return;
       }
       markReferenceUsed(result.reference);
-      // ✅ Payment voahasina — mamorona token download
       updatePaymentStatus(psid, 'completed');
-      const token = createDownloadToken(session.productId, psid);
-      const downloadUrl = `${BASE_URL}/download?token=${token}`;
 
-      await sendTextMessage(
-        psid,
-        `✅ Voahasina ny payment! Misaotra tompoko! 🎉\n\n` +
-        `Ity ny rohy fandownloading ny ${session.productName}:\n` +
-        `👇 ${downloadUrl}\n\n` +
-        `⚠️ Miasa indray mandeha fotsiny ity rohy ity ary maty ao anatin'ny 3 andro.`
-      );
+      // Mandefa download links rehetra
+      let successMsg = `✅ Voamarina ny payment! Misaotra tompoko! 🎉\n\n`;
 
+      for (const product of session.products) {
+        const token = createDownloadToken(product.id, psid);
+        const downloadUrl = `${BASE_URL}/download?token=${token}`;
+        successMsg += `📥 ${product.name}:\n👉 ${downloadUrl}\n\n`;
+      }
+
+      successMsg += `⚠️ Ity lien de téléchargement omeko anao ity dia tsy miasa afaka 3 andro ka téléchargeô haingana mba tsy ho expiré!`;
+
+      await sendTextMessage(psid, successMsg);
       clearPaymentSession(psid);
       clearHistory(psid);
+
     } else {
-      // ❌ Payment tsy voahasina
       const attempts = incrementAttempts(psid);
       updatePaymentStatus(psid, 'waiting_screenshot');
 
       if (attempts >= MAX_PAYMENT_ATTEMPTS) {
         clearPaymentSession(psid);
-        await sendTextMessage(
-          psid,
-          `❌ Tsy afaka nanamarina ny payment isika aorian'ny fandramana ${MAX_PAYMENT_ATTEMPTS} indray.\n\n` +
-          `Azafady mifandraisa amin'ny admin mivantana. Miala tsiny amin'ny fahasahiranana.`
-        );
+        await sendTextMessage(psid, `❌ Tsy afaka nanamarina ny payment aorian'ny fandramana ${MAX_PAYMENT_ATTEMPTS} indray. Mifandraisa amin'ny admin: 📱 0322064574`);
         return;
       }
 
-      await sendTextMessage(
-        psid,
-        `❌ Tsy voahasina ny payment: ${result.reason || 'Tsy mazava ny screenshot'}.\n\n` +
-        `Azafady:\n` +
-        `• Jereo raha marina ny montant (${session.amount.toLocaleString()} Ar)\n` +
-        `• Alefa screenshot mazava ny confirmation SMS/app\n` +
-        `• Fandramana ${attempts}/${MAX_PAYMENT_ATTEMPTS}\n\n` +
-        `Andrama indray azafady. 🙏`
-      );
+      await sendTextMessage(psid, `❌ Tsy voamarina ny payment: ${result.reason || 'Tsy mazava ny screenshot'}.\n\n• Tokony ho ${session.amount.toLocaleString()} Ar\n• Alefa screenshot mazava\n• Fandramana ${attempts}/${MAX_PAYMENT_ATTEMPTS}\n\nAndrama indray azafady 🙏`);
     }
   } catch (err) {
     console.error('[handlePaymentScreenshot] Error:', err.message);
     updatePaymentStatus(psid, 'waiting_screenshot');
-    await sendTextMessage(
-      psid,
-      'Nisy olana teknika. Andrama indray ny mandefa screenshot azafady.'
-    );
+    await sendTextMessage(psid, 'Nisy olana teknika. Andrama indray ny mandefa screenshot azafady.');
   }
 }
 
-// ─── Download Endpoint ────────────────────────────────────────────────────────
 app.get('/download', async (req, res) => {
   const { token } = req.query;
-
   if (!token) return res.status(400).send('Token tsy misy.');
-
   const result = validateAndConsumeToken(token);
-  if (!result.valid) {
-    return res.status(403).send(`Tsy azo ampiasaina: ${result.reason}`);
-  }
-
+  if (!result.valid) return res.status(403).send(`Tsy azo ampiasaina: ${result.reason}`);
   const product = getProductById(result.productId);
   if (!product) return res.status(404).send('Logiciel tsy hita.');
-
-  try {
-    // Mahazo URL vonjimaika avy amin'ny Telegram
-    const fileUrl = await getTelegramFileUrl(product.telegramFileId);
-
-    // Redirect mivantana amin'ny fichier Telegram
-    res.redirect(fileUrl);
-  } catch (err) {
-    console.error('[Download] Error:', err.message);
-    res.status(500).send('Tsy afaka mahazo ny fichier. Mifandraisa amin\'ny admin.');
-  }
+  if (!product.downloadUrl) return res.status(404).send('Fichier tsy hita.');
+  res.redirect(product.downloadUrl);
 });
 
-// ─── Health check ─────────────────────────────────────────────────────────────
-app.get('/', (req, res) => res.json({ status: 'Bot miasa tsara!' }));
+app.get('/', (req, res) => {
+  res.json({
+    status: 'Bot miasa!',
+    env: {
+      FB_PAGE_ACCESS_TOKEN: process.env.FB_PAGE_ACCESS_TOKEN ? '✅' : '❌',
+      FB_VERIFY_TOKEN: process.env.FB_VERIFY_TOKEN ? '✅' : '❌',
+      GROQ_API_KEY: process.env.GROQ_API_KEY ? '✅' : '❌',
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? '✅' : '❌',
+      BASE_URL: process.env.BASE_URL || '❌',
+    }
+  });
+});
 
-// ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`[Server] Miasa amin'ny port ${PORT}`));

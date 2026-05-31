@@ -1,9 +1,14 @@
 const paymentSessions = new Map();
-const usedReferences = new Set(); // Référence efa nampiasaina
+const usedReferences = new Set();
 
-function startPaymentSession(psid, productId, productName, amount) {
+function startPaymentSession(psid, products) {
+  // products = [{ id, name, price }, ...]
+  const totalAmount = products.reduce((sum, p) => sum + p.price, 0);
   paymentSessions.set(psid, {
-    productId, productName, amount,
+    products,
+    amount: totalAmount,
+    productId: products[0].id, // backward compat
+    productName: products.map(p => p.name).join(' + '),
     status: 'waiting_screenshot',
     attempts: 0,
     createdAt: Date.now()
