@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 // Fitahirizana tokens in-memory (azonao ovaina Redis na MongoDB any aoriana)
 const tokenStore = new Map();
 
-const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 ora
+const TOKEN_EXPIRY_MS = 72 * 60 * 60 * 1000; // 24 ora
 
 function createDownloadToken(productId, buyerPsid) {
   const token = uuidv4();

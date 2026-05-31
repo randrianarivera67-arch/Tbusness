@@ -178,7 +178,7 @@ async function handlePaymentScreenshot(psid, imageUrl) {
         `✅ Voahasina ny payment! Misaotra tompoko! 🎉\n\n` +
         `Ity ny rohy fandownloading ny ${session.productName}:\n` +
         `👇 ${downloadUrl}\n\n` +
-        `⚠️ Miasa indray mandeha fotsiny ity rohy ity ary maty ao anatin'ny 24 ora.`
+        `⚠️ Miasa indray mandeha fotsiny ity rohy ity ary maty ao anatin'ny 3 andro.`
       );
 
       clearPaymentSession(psid);
