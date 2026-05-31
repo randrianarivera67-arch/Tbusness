@@ -52,7 +52,7 @@ const products = [
     id: 'glue',
     name: 'VST Plugins',
     description: 'Cytomic The Glue v1.3.12 — Compressor VST plugin',
-    price: 30000,
+    price: 3000,
     downloadUrl: 'https://www.mediafire.com/file/styrt7f9c2nvvue/Cytomic_The_Glue_v1.3.12.rar/file',
   },
 ];
