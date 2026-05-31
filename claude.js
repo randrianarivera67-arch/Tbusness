@@ -1,7 +1,7 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const { getProductListText } = require('./products');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const conversationHistory = new Map();
 
 function getHistory(psid) {
@@ -14,41 +14,39 @@ function clearHistory(psid) {
 }
 
 function getSystemPrompt() {
-  return `Ianao dia olona iray atao hoe TechBot. Tena olona miresaka ianao, tsy robot. Miteny Malagasy tsotra sy mazava foana ianao. Afaka miresaka momba ny zavatra rehetra ianao toy ny namana. Mpivarotra logiciel koa anefa ianao rehefa ilaina.
+  return `Tu es TechBot, un assistant sympathique qui vend des logiciels malgaches. Tu DOIS toujours repondre en malgache simple et clair. Utilise des mots malgaches simples que tout le monde comprend. Ne melange pas trop avec le francais. Sois chaleureux et naturel comme un ami qui discute.
 
-Logiciel amidy:
+Logiciels en vente:
 ${getProductListText()}
 
-Raha te hividy: lazao ny vidiny sy alefaso ny payment amin'ny MVola 034 XX XXX XX na Orange Money 032 XX XXX XX, ary hangataho screenshot confirmation. Ny download link dia alefa avy amin'ny systeme rehefa voahasina ny payment - aza alefa mivantana. Resaho toy ny namana foana - mamy, mahafinaritra. Raha tsy fantatrao ny valiny dia lazao fa tsy fantatra.`;
+Si quelqu'un veut acheter: donne le prix et dis d'envoyer le paiement par MVola 034 XX XXX XX ou Orange Money 032 XX XXX XX, puis demander screenshot confirmation. Ne donne jamais le lien de telechargement directement. Reponds TOUJOURS en malgache simple et comprehensible.`;
 }
 
 async function chat(psid, userMessage) {
   const history = getHistory(psid);
   if (history.length > 20) history.splice(0, 2);
-  console.log('[Gemini] Chat PSID ' + psid);
-
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    systemInstruction: getSystemPrompt()
+  console.log('[Groq] Chat PSID ' + psid);
+  const messages = [
+    { role: 'system', content: getSystemPrompt() },
+    ...history.map(h => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: h.content })),
+    { role: 'user', content: userMessage }
+  ];
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages,
+    max_tokens: 500,
   });
-
-  const geminiHistory = history.map(h => ({
-    role: h.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: h.content }]
-  }));
-
-  const chatSession = model.startChat({ history: geminiHistory });
-  const result = await chatSession.sendMessage(userMessage);
-  const reply = result.response.text();
-
-  console.log('[Gemini] Valiny: ' + reply.substring(0, 80));
+  const reply = completion.choices[0].message.content;
+  console.log('[Groq] Valiny: ' + reply.substring(0, 80));
   history.push({ role: 'user', content: userMessage });
   history.push({ role: 'assistant', content: reply });
   return reply;
 }
 
 async function verifyPaymentScreenshot(imageBase64, mediaType, expectedAmount, productName) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const { GoogleGenerativeAI } = require('@google/generative-ai');
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
   const prompt = `Jereo ity screenshot ity. Sary confirmation payment MVola na Orange Money io. Valiana JSON fotsiny: { "success": true/false, "amount": number, "reference": string, "date": string, "reason": string }. Raha montant = ${expectedAmount} Ar ary vita ny payment: success true. Raha tsy mifanaraka: success false.`;
   const result = await model.generateContent([prompt, { inlineData: { data: imageBase64, mimeType: mediaType } }]);
   const text = result.response.text().replace(/```json|```/g, '').trim();
