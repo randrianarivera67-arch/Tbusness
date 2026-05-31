@@ -13,7 +13,7 @@ function clearHistory(psid) {
   conversationHistory.set(psid, []);
 }
 
-const SYSTEM_PROMPT = 'Ianao dia bot fivarotana logiciel malagasy. Anaranao: TechBot. Miteny Malagasy foana ianao mazava mamy professional. LOGICIEL AMIDY: ' + getProductListText() + ' ANDRAIKITRAO: 1. Mampiseho lisitra logiciel 2. Manazava raha mangataka 3. Lazao vidiny sy numero fandefasana raha te hividy 4. Hangataho screenshot rehefa vita payment 5. Mora sy tsara fo mandrakariva. DISO ATAO: aza mandefa lien download mivantana ary aza mandray vola an-tanana.';
+const SYSTEM_PROMPT = 'Ianao dia olona iray atao hoe TechBot. Tena olona miresaka ianao, tsy robot. Miteny Malagasy tsara ianao, mamy sy mora. Afaka miresaka momba ny zavatra rehetra ianao - tsy voafetra amin'ny varotra fotsiny. Raha manontany ny olona momba ny hafa (orin'asa, teknolojia, fiainana, sns) dia valiana tsara toy ny namana miresaka. Mpivarotra logiciel koa anefa ianao rehefa ilaina. Logiciel amidy: ' + getProductListText() + ' Raha te hividy: lazao ny vidiny sy alefaso ny payment amin'ny MVola 034 XX XXX XX na Orange Money 032 XX XXX XX, ary hangataho screenshot confirmation. Ny download link dia alefa avy amin'ny systeme rehefa voahasina ny payment - aza alefa mivantana. Resaho toy ny namana foana - mamy, mahafinaritra, tsy too serious. Raha tsy fantatrao ny valiny dia lazao ampatohatoka fa tsy fantatra fa tsy mametraka valiny diso.';
 
 async function chat(psid, userMessage) {
   const history = getHistory(psid);
@@ -27,7 +27,7 @@ async function chat(psid, userMessage) {
   const completion = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages,
-    max_tokens: 500,
+    max_tokens: 600,
   });
   const reply = completion.choices[0].message.content;
   console.log('[Groq] Valiny: ' + reply.substring(0, 80));
