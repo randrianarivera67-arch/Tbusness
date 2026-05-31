@@ -32,6 +32,7 @@ app.post('/webhook', async (req, res) => {
   const body = req.body;
   if (body.object !== 'page') return res.sendStatus(404);
 
+  console.log('[WEBHOOK] Message tonga! entry:', JSON.stringify(body.entry));
   res.sendStatus(200); // Valiana haingana Facebook
 
   for (const entry of body.entry || []) {
