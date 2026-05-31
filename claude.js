@@ -45,7 +45,7 @@ async function chat(psid, userMessage) {
   if (history.length > 20) history.splice(0, 2);
 
   const model = genAI.getGenerativeModel({ 
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     systemInstruction: SYSTEM_PROMPT
   });
 
@@ -66,7 +66,7 @@ async function chat(psid, userMessage) {
 
 // Vision: manamarina screenshot payment
 async function verifyPaymentScreenshot(imageBase64, mediaType, expectedAmount, productName) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const prompt = `Jereo ity screenshot ity. Sary confirmation payment MVola na Orange Money io.
 
