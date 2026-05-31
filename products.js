@@ -1,24 +1,31 @@
 const products = [
   {
-    id: 'prod_1',
-    name: 'Logiciel A',
-    description: 'Famaritana fohy ny Logiciel A',
-    price: 25000,
-    telegramFileId: 'FILE_ID_TELEGRAM_A', // ovay amin'ny tena file_id
+    id: 'office',
+    name: 'Microsoft Office',
+    description: 'Office 2007, 2010, 2016, 2021, 2024 — Word, Excel, PowerPoint sns',
+    price: 10000,
+    telegramFileId: 'FILE_ID_OFFICE',
   },
   {
-    id: 'prod_2',
-    name: 'Logiciel B',
-    description: 'Famaritana fohy ny Logiciel B',
-    price: 50000,
-    telegramFileId: 'FILE_ID_TELEGRAM_B',
+    id: 'image_video',
+    name: 'Image & Video',
+    description: 'Adobe Photoshop, Adobe Premiere Pro, Filmora, CapCut PC, DaVinci Resolve sns',
+    price: 10000,
+    telegramFileId: 'FILE_ID_IMAGE_VIDEO',
   },
   {
-    id: 'prod_3',
-    name: 'Logiciel C',
-    description: 'Famaritana fohy ny Logiciel C',
-    price: 75000,
-    telegramFileId: 'FILE_ID_TELEGRAM_C',
+    id: 'daw',
+    name: 'DAW',
+    description: 'FL Studio, Cubase, Adobe Audition, Ableton Live, Pro Tools sns',
+    price: 5000,
+    telegramFileId: 'FILE_ID_DAW',
+  },
+  {
+    id: 'vst',
+    name: 'VST Plugins',
+    description: 'Pack VST Plugins feno — Serum, Omnisphere, Kontakt, Massive sns',
+    price: 30000,
+    telegramFileId: 'FILE_ID_VST',
   },
 ];
 
