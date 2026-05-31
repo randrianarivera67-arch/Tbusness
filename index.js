@@ -4,7 +4,7 @@ const axios = require('axios');
 const { chat, verifyPaymentScreenshot, clearHistory } = require('./claude');
 const { sendTextMessage, sendQuickReplies } = require('./messenger');
 const { getProductByName, getAllProducts, getProductById } = require('./products');
-const { startPaymentSession, getPaymentSession, updatePaymentStatus, clearPaymentSession, incrementAttempts } = require('./payments');
+const { startPaymentSession, getPaymentSession, updatePaymentStatus, clearPaymentSession, incrementAttempts, isReferenceUsed, markReferenceUsed } = require('./payments');
 const { createDownloadToken, validateAndConsumeToken } = require('./tokens');
 const { getTelegramFileUrl } = require('./telegram');
 
@@ -168,6 +168,13 @@ async function handlePaymentScreenshot(psid, imageUrl) {
     );
 
     if (result.success) {
+      // Jereo raha efa nampiasaina ilay référence
+      if (result.reference && isReferenceUsed(result.reference)) {
+        updatePaymentStatus(psid, 'waiting_screenshot');
+        await sendTextMessage(psid, '❌ Efa nampiasaina taloha ilay screenshot. Alefao ny screenshot avy amin'ny payment vaovao azafady.');
+        return;
+      }
+      markReferenceUsed(result.reference);
       // ✅ Payment voahasina — mamorona token download
       updatePaymentStatus(psid, 'completed');
       const token = createDownloadToken(session.productId, psid);
