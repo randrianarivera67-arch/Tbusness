@@ -234,7 +234,7 @@ setInterval(() => {
   console.log('[Keep-alive] Ping!');
 }, 4 * 60 * 1000); // isaky ny 4 minitra
 
-// Reply amin'ny comment
+// Reply nalefa!
 async function replyToComment(commentId, message) {
   try {
     await axios.post(
@@ -273,7 +273,7 @@ async function handleComment(userId, userName, commentId, commentText) {
   }
 }
 
-// Reply amin'ny comment
+// Reply nalefa!
 async function replyToComment(commentId, message) {
   try {
     await axios.post(
@@ -281,7 +281,7 @@ async function replyToComment(commentId, message) {
       { message },
       { params: { access_token: process.env.FB_PAGE_ACCESS_TOKEN } }
     );
-    console.log('[Comment] Valiny nalefa ao amin'ny comment');
+    console.log('[Comment] Valiny nalefa ao nalefa!');
   } catch (err) {
     console.error('[Comment] Error reply:', err.response?.data || err.message);
   }
