@@ -199,5 +199,12 @@ app.get('/', (req, res) => {
   });
 });
 
+// Self-ping mba tsy hatory
+setInterval(() => {
+  const url = process.env.BASE_URL || 'http://localhost:3000';
+  require('axios').get(url).catch(() => {});
+  console.log('[Keep-alive] Ping!');
+}, 4 * 60 * 1000); // isaky ny 4 minitra
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`[Server] Miasa amin'ny port ${PORT}`));
