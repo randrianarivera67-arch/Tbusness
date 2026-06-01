@@ -1,38 +1,58 @@
-const paymentSessions = new Map();
+const fs = require('fs');
+const path = require('path');
+
+const SESSION_FILE = path.join(__dirname, 'sessions.json');
 const usedReferences = new Set();
 
+function loadSessions() {
+  try {
+    if (fs.existsSync(SESSION_FILE)) {
+      return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+    }
+  } catch {}
+  return {};
+}
+
+function saveSessions(sessions) {
+  try { fs.writeFileSync(SESSION_FILE, JSON.stringify(sessions)); } catch {}
+}
+
 function startPaymentSession(psid, products) {
-  // products = [{ id, name, price }, ...]
+  const sessions = loadSessions();
   const totalAmount = products.reduce((sum, p) => sum + p.price, 0);
-  paymentSessions.set(psid, {
-    products,
-    amount: totalAmount,
-    productId: products[0].id, // backward compat
+  sessions[psid] = {
+    products, amount: totalAmount,
+    productId: products[0].id,
     productName: products.map(p => p.name).join(' + '),
     status: 'waiting_screenshot',
     attempts: 0,
     createdAt: Date.now()
-  });
+  };
+  saveSessions(sessions);
 }
 
 function getPaymentSession(psid) {
-  return paymentSessions.get(psid) || null;
+  const sessions = loadSessions();
+  return sessions[psid] || null;
 }
 
 function updatePaymentStatus(psid, status) {
-  const session = paymentSessions.get(psid);
-  if (session) session.status = status;
+  const sessions = loadSessions();
+  if (sessions[psid]) { sessions[psid].status = status; saveSessions(sessions); }
 }
 
 function clearPaymentSession(psid) {
-  paymentSessions.delete(psid);
+  const sessions = loadSessions();
+  delete sessions[psid];
+  saveSessions(sessions);
 }
 
 function incrementAttempts(psid) {
-  const session = paymentSessions.get(psid);
-  if (session) {
-    session.attempts = (session.attempts || 0) + 1;
-    return session.attempts;
+  const sessions = loadSessions();
+  if (sessions[psid]) {
+    sessions[psid].attempts = (sessions[psid].attempts || 0) + 1;
+    saveSessions(sessions);
+    return sessions[psid].attempts;
   }
   return 0;
 }
@@ -47,11 +67,6 @@ function markReferenceUsed(reference) {
 }
 
 module.exports = {
-  startPaymentSession,
-  getPaymentSession,
-  updatePaymentStatus,
-  clearPaymentSession,
-  incrementAttempts,
-  isReferenceUsed,
-  markReferenceUsed
+  startPaymentSession, getPaymentSession, updatePaymentStatus,
+  clearPaymentSession, incrementAttempts, isReferenceUsed, markReferenceUsed
 };
