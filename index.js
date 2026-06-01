@@ -242,7 +242,7 @@ async function replyToComment(commentId, message) {
       { message },
       { params: { access_token: process.env.FB_PAGE_ACCESS_TOKEN } }
     );
-    console.log('[Comment] Valiny nalefa ao amin'ny comment');
+    console.log('[Comment] Valiny nalefa!');
   } catch (err) {
     console.error('[Comment] Error reply:', err.response?.data || err.message);
   }
