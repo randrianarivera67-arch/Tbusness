@@ -119,6 +119,13 @@ async function handleTextMessage(psid, text) {
       return;
     }
 
+    if (text.toLowerCase() === 'reset' || text.toLowerCase() === '/reset') {
+      clearHistory(psid);
+      clearPaymentSession(psid);
+      await sendTextMessage(psid, 'Salama tompoko! Manomboka resaka vaovao izahay 😊 Inona no azoko anampiana anao?');
+      return;
+    }
+
     const buyIntent = text.toLowerCase().includes('mividy') ||
       text.toLowerCase().includes('te hividy') ||
       text.toLowerCase().includes('order');
