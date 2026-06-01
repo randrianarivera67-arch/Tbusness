@@ -55,6 +55,20 @@ const products = [
     price: 3000,
     downloadUrl: 'https://www.mediafire.com/file/styrt7f9c2nvvue/Cytomic_The_Glue_v1.3.12.rar/file',
   },
+  {
+    id: 'flstudio',
+    name: 'FL Studio',
+    description: 'FL Studio Producer Edition v20.5 — DAW feno',
+    price: 5000,
+    downloadUrl: 'https://www.mediafire.com/file/nmv1f9u231vsgok/FL_Studio_Producer_Edition_v20.5._x86_x64.iso/file',
+  },
+  {
+    id: 'slategital',
+    name: 'Slate Digital Fresh Air',
+    description: 'Slate Digital Fresh Air v1.0.9 — VST plugin',
+    price: 3000,
+    downloadUrl: 'https://www.mediafire.com/file/854syoim1sur5zt/SlteDgtal_FrshAr_v1.0.9-R2R.rar/file',
+  },
 ];
 
 function getProductById(id) {
