@@ -128,7 +128,11 @@ async function handleTextMessage(psid, text) {
 
     const buyIntent = text.toLowerCase().includes('mividy') ||
       text.toLowerCase().includes('te hividy') ||
-      text.toLowerCase().includes('order');
+      text.toLowerCase().includes('hividy') ||
+      text.toLowerCase().includes('vidy') ||
+      text.toLowerCase().includes('order') ||
+      text.toLowerCase().includes('achat') ||
+      text.toLowerCase().includes('commander');
 
     if (buyIntent) {
       const allProducts = getAllProducts();
@@ -136,6 +140,18 @@ async function handleTextMessage(psid, text) {
       for (const p of allProducts) {
         if (text.toLowerCase().includes(p.name.toLowerCase())) {
           matchedProducts.push(p);
+        }
+      }
+
+      // Raha tsy hita ao amin'ny message dia jereo ny history
+      if (matchedProducts.length === 0) {
+        const hist = getHistory ? getHistory(psid) : [];
+        const recentText = hist.slice(-6).map(h => h.content).join(' ').toLowerCase();
+        for (const p of allProducts) {
+          if (recentText.includes(p.name.toLowerCase())) {
+            matchedProducts.push(p);
+            break;
+          }
         }
       }
 
