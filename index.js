@@ -32,6 +32,20 @@ app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 
   for (const entry of body.entry || []) {
+    // Handle feed/comment events
+    for (const change of entry.changes || []) {
+      if (change.field === 'feed' && change.value?.item === 'comment' && change.value?.verb === 'add') {
+        const val = change.value;
+        const userId = val.from?.id;
+        const userName = val.from?.name || 'tompoko';
+        const commentId = val.comment_id;
+        const commentText = val.message || '';
+        if (userId && commentId && userId !== entry.id) {
+          await handleComment(userId, userName, commentId, commentText);
+        }
+      }
+    }
+
     for (const event of entry.messaging || []) {
       const psid = event.sender.id;
       if (event.message) {
@@ -205,6 +219,45 @@ setInterval(() => {
   require('axios').get(url).catch(() => {});
   console.log('[Keep-alive] Ping!');
 }, 4 * 60 * 1000); // isaky ny 4 minitra
+
+// Reply amin'ny comment
+async function replyToComment(commentId, message) {
+  try {
+    await axios.post(
+      `https://graph.facebook.com/v19.0/${commentId}/comments`,
+      { message },
+      { params: { access_token: process.env.FB_PAGE_ACCESS_TOKEN } }
+    );
+    console.log('[Comment] Valiny nalefa ao amin'ny comment');
+  } catch (err) {
+    console.error('[Comment] Error reply:', err.response?.data || err.message);
+  }
+}
+
+// Handle comment events
+async function handleComment(userId, userName, commentId, commentText) {
+  console.log(`[Comment] avy amin'ny ${userName}: ${commentText}`);
+  
+  const allProducts = getAllProducts();
+  const productFound = allProducts.find(p => 
+    commentText.toLowerCase().includes(p.name.toLowerCase().split(' ')[0])
+  );
+
+  if (productFound) {
+    // Mamaly comment raha hita ny logiciel
+  } else {
+    // Mamaly comment raha tsy hita
+    await replyToComment(commentId, 'Salama tompoko 👋 MP any mba hahafantaranao bebe kokoa 😊');
+  }
+
+  // Mandefa DM
+  try {
+    await sendTextMessage(userId, `Salama tompoko ${userName}! 👋 Nahita ny commentairenao aho 😊 Inona ny logiciel tadiavina?`);
+    console.log('[Comment] DM nalefa');
+  } catch (err) {
+    console.error('[Comment] DM error:', err.message);
+  }
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`[Server] Miasa amin'ny port ${PORT}`));
