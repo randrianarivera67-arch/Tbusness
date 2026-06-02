@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const { chat, verifyPaymentScreenshot, clearHistory } = require('./claude');
+const { chat, verifyPaymentScreenshot, clearHistory, getHistory } = require('./claude');
 const { sendTextMessage } = require('./messenger');
 const { getProductByName, getAllProducts, getProductById } = require('./products');
 const { startPaymentSession, getPaymentSession, updatePaymentStatus, clearPaymentSession, incrementAttempts, isReferenceUsed, markReferenceUsed } = require('./payments');
