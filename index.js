@@ -125,49 +125,7 @@ async function handleTextMessage(psid, text) {
       await sendTextMessage(psid, 'Salama tompoko! Manomboka resaka vaovao izahay 😊 Inona no azoko anampiana anao?');
       return;
     }
-
-    const buyIntent = text.toLowerCase().includes('mividy') ||
-      text.toLowerCase().includes('te hividy') ||
-      text.toLowerCase().includes('hividy') ||
-      text.toLowerCase().includes('vidy') ||
-      text.toLowerCase().includes('order') ||
-      text.toLowerCase().includes('achat') ||
-      text.toLowerCase().includes('commander');
-
-    if (buyIntent) {
-      const allProducts = getAllProducts();
-      const matchedProducts = [];
-      for (const p of allProducts) {
-        if (text.toLowerCase().includes(p.name.toLowerCase())) {
-          matchedProducts.push(p);
-        }
-      }
-
-      // Raha tsy hita ao amin'ny message dia jereo ny history
-      if (matchedProducts.length === 0) {
-        const hist = getHistory ? getHistory(psid) : [];
-        const recentText = hist.slice(-6).map(h => h.content).join(' ').toLowerCase();
-        for (const p of allProducts) {
-          if (recentText.includes(p.name.toLowerCase())) {
-            matchedProducts.push(p);
-            break;
-          }
-        }
-      }
-
-      if (matchedProducts.length > 0) {
-        const totalAmount = matchedProducts.reduce((sum, p) => sum + p.price, 0);
-        const productList = matchedProducts.map(p => `- ${p.name}: ${p.price.toLocaleString()} Ar`).join('\n');
-        startPaymentSession(psid, matchedProducts);
-
-        let message = `Tsara! Ireto ny baiko:\n\n${productList}\n\n`;
-        if (matchedProducts.length > 1) {
-          message += `Total: ${totalAmount.toLocaleString()} Ar\n\n`;
-        }
-        message += `Alefao ny vola:\n\nMVola: 0344192129 (JHON ROCH TONNY)\nOrange Money: 0322064574 (JHON ROCH TONNY)\n\nRehefa vita, mandefa screenshot confirmation azafady`;
-        await sendTextMessage(psid, message);
-        return;
-      }
+    // Groq mihitsy no mamaly messages rehetra
     }
 
     const reply = await chat(psid, text);
