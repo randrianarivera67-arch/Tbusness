@@ -125,7 +125,6 @@ async function handleTextMessage(psid, text) {
       await sendTextMessage(psid, 'Salama tompoko! Manomboka resaka vaovao izahay 😊 Inona no azoko anampiana anao?');
       return;
     }
-    // Groq mihitsy no mamaly messages rehetra
     }
 
     const reply = await chat(psid, text);
