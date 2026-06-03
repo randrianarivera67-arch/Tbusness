@@ -152,7 +152,8 @@ async function handlePaymentScreenshot(psid, imageUrl) {
 
     const result = await verifyPaymentScreenshot(imageBase64, contentType, session.amount, session.productName);
 
-    if (result.success) {
+    // Manamarina ny vidiny eto amin'ny code — tsy ny Groq
+    if (result.success && result.amount >= session.amount) {
       if (result.reference && isReferenceUsed(result.reference)) {
         updatePaymentStatus(psid, 'waiting_screenshot');
         await sendTextMessage(psid, 'Efa nampiasaina taloha ilay screenshot. Alefao ny screenshot avy amin-dRahalah payment vaovao azafady.');
