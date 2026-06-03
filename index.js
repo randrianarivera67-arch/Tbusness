@@ -125,7 +125,6 @@ async function handleTextMessage(psid, text) {
       await sendTextMessage(psid, 'Salama tompoko! Manomboka resaka vaovao izahay 😊 Inona no azoko anampiana anao?');
       return;
     }
-    }
 
     const reply = await chat(psid, text);
     await sendTextMessage(psid, reply);
