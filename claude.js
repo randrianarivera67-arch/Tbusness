@@ -137,12 +137,21 @@ async function chat(psid, userMessage) {
 }
 
 async function verifyPaymentScreenshot(imageBase64, mediaType, expectedAmount, productName) {
-  const { GoogleGenerativeAI } = require('@google/generative-ai');
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  const prompt = `Jereo ity screenshot ity. Sary confirmation payment MVola na Orange Money io. Valiana JSON fotsiny: { "success": true/false, "amount": number, "reference": string, "date": string, "reason": string }. Raha montant = ${expectedAmount} Ar ary vita ny payment: success true. Raha tsy mifanaraka: success false.`;
-  const result = await model.generateContent([prompt, { inlineData: { data: imageBase64, mimeType: mediaType } }]);
-  const text = result.response.text().replace(/```json|```/g, '').trim();
+  const prompt = `Jereo ity screenshot ity. Sary confirmation payment MVola na Orange Money io. Valiana JSON fotsiny ihany, tsy misy preamble na backtick: { "success": true/false, "amount": number, "reference": string, "date": string, "reason": string }. Raha montant >= ${expectedAmount} Ar ary vita ny payment: success true. Raha tsy ampy na tsy mazava: success false.`;
+  const completion = await groq.chat.completions.create({
+    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+          { type: 'text', text: prompt }
+        ]
+      }
+    ],
+    max_tokens: 300,
+  });
+  const text = completion.choices[0].message.content.replace(/```json|```/g, '').trim();
   try { return JSON.parse(text); }
   catch { return { success: false, reason: 'Tsy afaka mamaky valim-panamarinana' }; }
 }
