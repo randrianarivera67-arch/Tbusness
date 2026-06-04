@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const { chat, verifyPaymentScreenshot, clearHistory, getHistory } = require('./claude');
+const { chat, verifyPaymentScreenshot, clearHistory } = require('./claude');
 const { sendTextMessage } = require('./messenger');
 const { getProductByName, getAllProducts, getProductById } = require('./products');
 const { startPaymentSession, getPaymentSession, updatePaymentStatus, clearPaymentSession, incrementAttempts, isReferenceUsed, markReferenceUsed } = require('./payments');
@@ -16,11 +16,11 @@ const MAX_PAYMENT_ATTEMPTS = 3;
 
 // Keep-alive
 setInterval(() => {
-  const url = process.env.BASE_URL || 'http://localhost:3000';
-  require('axios').get(url).catch(() => {});
+  require('axios').get(BASE_URL).catch(() => {});
   console.log('[Keep-alive] Ping!');
 }, 4 * 60 * 1000);
 
+// Webhook verification
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
@@ -32,28 +32,28 @@ app.get('/webhook', (req, res) => {
   res.sendStatus(403);
 });
 
+// Webhook messages
 app.post('/webhook', async (req, res) => {
   const body = req.body;
   if (body.object !== 'page') return res.sendStatus(404);
-  console.log('[WEBHOOK] Message tonga! entry:', JSON.stringify(body.entry));
+  console.log('[WEBHOOK] Message tonga!');
   res.sendStatus(200);
 
   for (const entry of body.entry || []) {
-    // Handle comments
+    // Comments
     for (const change of entry.changes || []) {
       if (change.field === 'feed' && change.value?.item === 'comment' && change.value?.verb === 'add') {
         const val = change.value;
         const userId = val.from?.id;
         const userName = val.from?.name || 'tompoko';
         const commentId = val.comment_id;
-        const commentText = val.message || '';
         if (userId && commentId && userId !== entry.id) {
-          await handleComment(userId, userName, commentId, commentText);
+          await handleComment(userId, userName, commentId, val.message || '');
         }
       }
     }
 
-    // Handle messages
+    // Messages
     for (const event of entry.messaging || []) {
       const psid = event.sender.id;
       if (event.message) {
@@ -75,62 +75,49 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-async function replyToComment(commentId, message) {
+// Comment handler
+async function handleComment(userId, userName, commentId, commentText) {
   try {
+    const allProducts = getAllProducts();
+    const productFound = allProducts.find(p =>
+      commentText.toLowerCase().includes(p.name.toLowerCase().split(' ')[0])
+    );
     await axios.post(
       `https://graph.facebook.com/v19.0/${commentId}/comments`,
-      { message },
+      { message: productFound ? `Eny tompoko, misy ${productFound.name} 😊 MP any!` : 'Salama tompoko 👋 MP any mba hahafantaranao bebe kokoa 😊' },
       { params: { access_token: process.env.FB_PAGE_ACCESS_TOKEN } }
     );
-    console.log('[Comment] Valiny nalefa!');
+    await sendTextMessage(userId, `Salama tompoko ${userName}! 👋 Inona ny logiciel tadiavinao?`);
   } catch (err) {
-    console.error('[Comment] Error reply:', err.response?.data || err.message);
+    console.error('[Comment] Error:', err.message);
   }
 }
 
-async function handleComment(userId, userName, commentId, commentText) {
-  console.log(`[Comment] avy amin-dRahalah ${userName}: ${commentText}`);
-
-  const allProducts = getAllProducts();
-  const productFound = allProducts.find(p =>
-    commentText.toLowerCase().includes(p.name.toLowerCase().split(' ')[0])
-  );
-
-  if (productFound) {
-    await replyToComment(commentId, `Eny tompoko, misy ${productFound.name} 😊 MP any!`);
-  } else {
-    await replyToComment(commentId, 'Salama tompoko 👋 MP any mba hahafantaranao bebe kokoa 😊');
-  }
-
-  try {
-    await sendTextMessage(userId, `Salama tompoko ${userName}! 👋 Nahita ny commentairenao aho 😊 Inona ny logiciel tadiavinao?`);
-    console.log('[Comment] DM nalefa!');
-  } catch (err) {
-    console.error('[Comment] DM error:', err.message);
-  }
-}
-
+// Text message handler
 async function handleTextMessage(psid, text) {
   try {
     const session = await getPaymentSession(psid);
 
     if (session && session.status === 'waiting_screenshot') {
-      await sendTextMessage(psid, 'Miandry ny screenshot confirmation payment aho. Mandefa screenshot azafady.');
+      await sendTextMessage(psid, 'Miandry ny screenshot confirmation payment aho. Mandefa screenshot azafady 🙏');
       return;
     }
 
     if (text.toLowerCase() === 'reset' || text.toLowerCase() === '/reset') {
       clearHistory(psid);
-      clearPaymentSession(psid);
-      await sendTextMessage(psid, 'Salama tompoko! Manomboka resaka vaovao izahay 😊 Inona no azoko anampiana anao?');
+      await clearPaymentSession(psid);
+      await sendTextMessage(psid, 'Salama tompoko! Manomboka resaka vaovao 😊');
       return;
     }
 
     const result = await chat(psid, text);
+    // Esorina ny BUY signal amin'ny text alefa
     const cleanText = result.text.replace(/\[\[BUY:[^\]]+\]\]/g, '').trim();
-    await sendTextMessage(psid, cleanText);
+    // Esorina ny character tsy UTF-8
+    const safeText = cleanText.replace(/[^\x00-\x7F\u0080-\uFFFF]/g, '');
+    await sendTextMessage(psid, safeText || 'Misaotra tompoko! 😊');
 
-    // Detect BUY signal avy amin'ny Groq
+    // Detect BUY signal
     const buySignals = [...result.text.matchAll(/\[\[BUY:([^:]+):(\d+)\]\]/g)];
     if (buySignals.length > 0) {
       const products = [];
@@ -143,14 +130,11 @@ async function handleTextMessage(psid, text) {
         console.log('[Payment] Session atomboky:', products.map(p => p.name).join(' + '));
       }
     } else {
-      // Fallback: raha tsy misy signal fa Groq niresaka momba payment
-      // Jereo raha ny valiny dia misy laharana payment (MVola na Orange Money)
-      const hasMvola = cleanText.includes('0344192129') || cleanText.includes('0322064574');
+      // Fallback: raha Groq nilaza MVola/Orange Money fa tsy nametraka signal
+      const hasMvola = result.text.includes('0344192129') || result.text.includes('0322064574');
       if (hasMvola) {
-        // Groq efa nanome torolalana payment fa tsy nametraka signal
-        // Anontanio Groq mba hahafantarana ny logiciel
         const allProducts = getAllProducts();
-        const mentionedProduct = allProducts.find(p => 
+        const mentionedProduct = allProducts.find(p =>
           result.text.toLowerCase().includes(p.name.toLowerCase().split(' ')[0].toLowerCase())
         );
         if (mentionedProduct) {
@@ -165,61 +149,78 @@ async function handleTextMessage(psid, text) {
   }
 }
 
+// Screenshot payment handler
 async function handlePaymentScreenshot(psid, imageUrl) {
   const session = await getPaymentSession(psid);
   if (!session) {
-    const reply = await chat(psid, '[Mpanjifa nandefasa sary]');
-    await sendTextMessage(psid, reply);
+    await sendTextMessage(psid, 'Misaotra tompoko! Nefa tsy mbola nifidy logiciel ianao. Lazao ahy aloha ny logiciel tadiavinao 😊');
     return;
   }
 
-  await sendTextMessage(psid, 'Manamarina ny payment... Andraso kely azafady.');
-  updatePaymentStatus(psid, 'verifying');
+  await sendTextMessage(psid, 'Manamarina ny payment... Andraso kely azafady 🔍');
 
   try {
+    // Download ny sary
     const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
     const imageBase64 = Buffer.from(imageResponse.data).toString('base64');
     const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
 
     const result = await verifyPaymentScreenshot(imageBase64, contentType, session.amount, session.productName);
+    console.log('[Payment] Verification result:', JSON.stringify(result));
 
-    // Manamarina ny vidiny eto amin'ny code — tsy ny Groq
     if (result.success && result.amount >= session.amount) {
+      // Jereo raha efa nampiasaina ilay reference
       if (result.reference && isReferenceUsed(result.reference)) {
-        updatePaymentStatus(psid, 'waiting_screenshot');
-        await sendTextMessage(psid, 'Efa nampiasaina taloha ilay screenshot. Alefao ny screenshot avy amin-dRahalah payment vaovao azafady.');
+        await updatePaymentStatus(psid, 'waiting_screenshot');
+        await sendTextMessage(psid, 'Efa nampiasaina taloha ilay screenshot. Alefao ny screenshot vaovao azafady 🙏');
         return;
       }
       markReferenceUsed(result.reference);
-      updatePaymentStatus(psid, 'completed');
+      await updatePaymentStatus(psid, 'completed');
 
-      let successMsg = 'Voamarina ny payment! Misaotra tompoko!\n\n';
+      // Mandefa lien download
+      let successMsg = 'Voamarina ny payment! Misaotra tompoko! 🎉\n\n';
       for (const product of session.products) {
         const token = await createDownloadToken(product.id, psid);
         const downloadUrl = `${BASE_URL}/download?token=${token}`;
         successMsg += `${product.name}:\n${downloadUrl}\n\n`;
       }
-      successMsg += 'Ity lien ity dia tsy miasa afaka 3 andro — telecharge haingana!';
+      successMsg += 'Ity lien ity dia miasa 72 ora — telecharge haingana! ⏰';
       await sendTextMessage(psid, successMsg);
-      clearPaymentSession(psid);
+      await clearPaymentSession(psid);
       clearHistory(psid);
-    } else {
+
+    } else if (result.success && result.amount < session.amount) {
+      // Vola tsy ampy
       const attempts = await incrementAttempts(psid);
       await updatePaymentStatus(psid, 'waiting_screenshot');
       if (attempts >= MAX_PAYMENT_ATTEMPTS) {
-        clearPaymentSession(psid);
-        await sendTextMessage(psid, 'Tsy afaka nanamarina ny payment. Mifandraisa amin-dRahalah admin: 0322064574');
+        await clearPaymentSession(psid);
+        await sendTextMessage(psid, 'Tsy afaka nanamarina ny payment. Mifandraisa amin\'ny admin: +261 32 206 4574 📲');
         return;
       }
-      await sendTextMessage(psid, `Tsy voamarina ny payment: ${result.reason || 'Tsy mazava ny screenshot'}. Tokony ho ${session.amount.toLocaleString()} Ar. Fandramana ${attempts}/${MAX_PAYMENT_ATTEMPTS}`);
+      await sendTextMessage(psid, `Miala tsiny tompoko, tsy ampy ny vola alefana 😔 Nalefa ${result.amount.toLocaleString()} Ar fa tokony ho ${session.amount.toLocaleString()} Ar. Alefao indray ny tena vola marina 🙏`);
+
+    } else {
+      // Screenshot tsy mazava
+      const attempts = await incrementAttempts(psid);
+      await updatePaymentStatus(psid, 'waiting_screenshot');
+      if (attempts >= MAX_PAYMENT_ATTEMPTS) {
+        await clearPaymentSession(psid);
+        await sendTextMessage(psid, 'Tsy afaka nanamarina ny payment. Mifandraisa amin\'ny admin: +261 32 206 4574 📲');
+        return;
+      }
+      await sendTextMessage(psid, `Tsy azonay vakiana tsara ny screenshot 😔 Alefao indray sary mazava kokoa. Fandramana ${attempts}/${MAX_PAYMENT_ATTEMPTS}`);
     }
+
   } catch (err) {
     console.error('[handlePaymentScreenshot] Error:', err.message);
-    updatePaymentStatus(psid, 'waiting_screenshot');
+    await updatePaymentStatus(psid, 'waiting_screenshot');
     await sendTextMessage(psid, 'Nisy olana teknika. Andrama indray ny mandefa screenshot azafady.');
   }
 }
 
+// Download endpoint
 app.get('/download', async (req, res) => {
   const { token } = req.query;
   if (!token) return res.status(400).send('Token tsy misy.');
@@ -231,17 +232,9 @@ app.get('/download', async (req, res) => {
   res.redirect(product.downloadUrl);
 });
 
+// Health check
 app.get('/', (req, res) => {
-  res.json({
-    status: 'Bot miasa!',
-    env: {
-      FB_PAGE_ACCESS_TOKEN: process.env.FB_PAGE_ACCESS_TOKEN ? 'OK' : 'MISSING',
-      FB_VERIFY_TOKEN: process.env.FB_VERIFY_TOKEN ? 'OK' : 'MISSING',
-      GROQ_API_KEY: process.env.GROQ_API_KEY ? 'OK' : 'MISSING',
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'OK' : 'MISSING',
-      BASE_URL: process.env.BASE_URL || 'MISSING',
-    }
-  });
+  res.json({ status: 'Bot miasa! 🤖', version: '2.0' });
 });
 
 const PORT = process.env.PORT || 3000;
