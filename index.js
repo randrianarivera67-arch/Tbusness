@@ -129,19 +129,6 @@ async function handleTextMessage(psid, text) {
         await startPaymentSession(psid, products);
         console.log('[Payment] Session atomboky:', products.map(p => p.name).join(' + '));
       }
-    } else {
-      // Fallback: raha Groq nilaza MVola/Orange Money fa tsy nametraka signal
-      const hasMvola = result.text.includes('0344192129') || result.text.includes('0322064574');
-      if (hasMvola) {
-        const allProducts = getAllProducts();
-        const mentionedProduct = allProducts.find(p =>
-          result.text.toLowerCase().includes(p.name.toLowerCase().split(' ')[0].toLowerCase())
-        );
-        if (mentionedProduct) {
-          await startPaymentSession(psid, [mentionedProduct]);
-          console.log('[Payment] Fallback session:', mentionedProduct.name);
-        }
-      }
     }
   } catch (err) {
     console.error('[handleTextMessage] Error:', err.message);
