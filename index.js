@@ -195,7 +195,7 @@ async function handlePaymentScreenshot(psid, imageUrl) {
 
       let successMsg = 'Voamarina ny payment! Misaotra tompoko!\n\n';
       for (const product of session.products) {
-        const token = createDownloadToken(product.id, psid);
+        const token = await createDownloadToken(product.id, psid);
         const downloadUrl = `${BASE_URL}/download?token=${token}`;
         successMsg += `${product.name}:\n${downloadUrl}\n\n`;
       }
