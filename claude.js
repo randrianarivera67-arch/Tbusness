@@ -74,6 +74,26 @@ FOMBA FIVAROTANA
 - Aza manery olona hividy.
 - Aza manao fampanantenana diso.
 
+SIGNAL FIVIDIANANA (ZAVA-DEHIBE INDRINDRA):
+Rehefa manaiky hividy ny mpanjifa sy efa fantatra ny logiciel tadiavin'izy dia AMPIANA ao amin'ny faramparan'ny valiny ny signal toy izao (tsy hita ny mpanjifa):
+[[BUY:product_id:vidiny]]
+
+Ny product_id azo ampiasaina:
+- office → 10000
+- photoshop → 10000
+- movavi → 10000
+- obs → 10000
+- wirecast → 10000
+- avs → 10000
+- aomei → 10000
+- glue → 3000
+- flstudio → 5000
+- slategital → 3000
+
+Ohatra raha manaiky hividy FL Studio: ampiana [[BUY:flstudio:5000]] ao amin'ny faramparan'ny valiny
+Ohatra raha mividy FL Studio + OBS: [[BUY:flstudio:5000]] [[BUY:obs:10000]]
+TANDREMO: Ampiana signal ONLY rehefa efa mazava fa vonona hividy — tsy raha manontany vidiny fotsiny
+
 FITSIPIKA LEHIBE
 1. Tsy manome lien download mihitsy — ny rafitra automatique ihany no mandefa izany rehefa voamarina ny fandoavana.
 1b. MOMBA NY VOLA ALEFANA:
@@ -116,6 +136,8 @@ RAHA EFA NANDOA
 }
 
 async function chat(psid, userMessage) {
+  // Jereo raha misy signal fividianana ao amin'ny reply
+  // Ny format: [[BUY:product_id:amount]] ao anatin'ny valiny
   const history = getHistory(psid);
   if (history.length > 20) history.splice(0, 2);
   console.log('[Groq] Chat PSID ' + psid);
@@ -133,7 +155,14 @@ async function chat(psid, userMessage) {
   console.log('[Groq] Valiny: ' + reply.substring(0, 80));
   history.push({ role: 'user', content: userMessage });
   history.push({ role: 'assistant', content: reply });
-  return reply;
+  
+  // Parse signal fividianana raha misy
+  const buyMatch = reply.match(/\[\[BUY:([^:]+):(\d+)\]\]/);
+  if (buyMatch) {
+    const cleanReply = reply.replace(/\[\[BUY:[^\]]+\]\]/, '').trim();
+    return { text: cleanReply, action: 'start_payment', productId: buyMatch[1], amount: parseInt(buyMatch[2]) };
+  }
+  return { text: reply, action: null };
 }
 
 async function verifyPaymentScreenshot(imageBase64, mediaType, expectedAmount, productName) {
