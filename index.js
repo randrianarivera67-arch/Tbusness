@@ -129,6 +129,8 @@ async function handleTextMessage(psid, text) {
     const result = await chat(psid, text);
     const cleanText = result.text.replace(/\[\[BUY:[^\]]+\]\]/g, '').trim();
     await sendTextMessage(psid, cleanText);
+
+    // Detect BUY signal avy amin'ny Groq
     const buySignals = [...result.text.matchAll(/\[\[BUY:([^:]+):(\d+)\]\]/g)];
     if (buySignals.length > 0) {
       const products = [];
@@ -139,6 +141,22 @@ async function handleTextMessage(psid, text) {
       if (products.length > 0) {
         await startPaymentSession(psid, products);
         console.log('[Payment] Session atomboky:', products.map(p => p.name).join(' + '));
+      }
+    } else {
+      // Fallback: raha tsy misy signal fa Groq niresaka momba payment
+      // Jereo raha ny valiny dia misy laharana payment (MVola na Orange Money)
+      const hasMvola = cleanText.includes('0344192129') || cleanText.includes('0322064574');
+      if (hasMvola) {
+        // Groq efa nanome torolalana payment fa tsy nametraka signal
+        // Anontanio Groq mba hahafantarana ny logiciel
+        const allProducts = getAllProducts();
+        const mentionedProduct = allProducts.find(p => 
+          result.text.toLowerCase().includes(p.name.toLowerCase().split(' ')[0].toLowerCase())
+        );
+        if (mentionedProduct) {
+          await startPaymentSession(psid, [mentionedProduct]);
+          console.log('[Payment] Fallback session:', mentionedProduct.name);
+        }
       }
     }
   } catch (err) {
