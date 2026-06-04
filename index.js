@@ -204,8 +204,8 @@ async function handlePaymentScreenshot(psid, imageUrl) {
       clearPaymentSession(psid);
       clearHistory(psid);
     } else {
-      const attempts = incrementAttempts(psid);
-      updatePaymentStatus(psid, 'waiting_screenshot');
+      const attempts = await incrementAttempts(psid);
+      await updatePaymentStatus(psid, 'waiting_screenshot');
       if (attempts >= MAX_PAYMENT_ATTEMPTS) {
         clearPaymentSession(psid);
         await sendTextMessage(psid, 'Tsy afaka nanamarina ny payment. Mifandraisa amin-dRahalah admin: 0322064574');
@@ -223,7 +223,7 @@ async function handlePaymentScreenshot(psid, imageUrl) {
 app.get('/download', async (req, res) => {
   const { token } = req.query;
   if (!token) return res.status(400).send('Token tsy misy.');
-  const result = validateAndConsumeToken(token);
+  const result = await validateAndConsumeToken(token);
   if (!result.valid) return res.status(403).send(`Tsy azo ampiasaina: ${result.reason}`);
   const product = getProductById(result.productId);
   if (!product) return res.status(404).send('Logiciel tsy hita.');
