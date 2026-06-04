@@ -112,7 +112,7 @@ async function handleComment(userId, userName, commentId, commentText) {
 
 async function handleTextMessage(psid, text) {
   try {
-    const session = getPaymentSession(psid);
+    const session = await getPaymentSession(psid);
 
     if (session && session.status === 'waiting_screenshot') {
       await sendTextMessage(psid, 'Miandry ny screenshot confirmation payment aho. Mandefa screenshot azafady.');
@@ -137,7 +137,7 @@ async function handleTextMessage(psid, text) {
         if (product) products.push(product);
       }
       if (products.length > 0) {
-        startPaymentSession(psid, products);
+        await startPaymentSession(psid, products);
         console.log('[Payment] Session atomboky:', products.map(p => p.name).join(' + '));
       }
     }
@@ -148,7 +148,7 @@ async function handleTextMessage(psid, text) {
 }
 
 async function handlePaymentScreenshot(psid, imageUrl) {
-  const session = getPaymentSession(psid);
+  const session = await getPaymentSession(psid);
   if (!session) {
     const reply = await chat(psid, '[Mpanjifa nandefasa sary]');
     await sendTextMessage(psid, reply);
