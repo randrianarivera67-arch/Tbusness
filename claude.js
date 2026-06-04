@@ -94,6 +94,26 @@ Ohatra raha manaiky hividy FL Studio: ampiana [[BUY:flstudio:5000]] ao amin'ny f
 Ohatra raha mividy FL Studio + OBS: [[BUY:flstudio:5000]] [[BUY:obs:10000]]
 TANDREMO: Ampiana signal ONLY rehefa efa mazava fa vonona hividy — tsy raha manontany vidiny fotsiny
 
+SIGNAL FIVIDIANANA (ZAVA-DEHIBE INDRINDRA):
+Rehefa manaiky hividy ny mpanjifa sy efa fantatra ny logiciel tadiavin'izy dia AMPIANA ao amin'ny faramparan'ny valiny ny signal toy izao (tsy hita ny mpanjifa):
+[[BUY:product_id:vidiny]]
+
+Ny product_id sy vidiny azo ampiasaina:
+- office:10000
+- photoshop:10000
+- movavi:10000
+- obs:10000
+- wirecast:10000
+- avs:10000
+- aomei:10000
+- glue:3000
+- flstudio:5000
+- slategital:3000
+
+Ohatra raha manaiky hividy FL Studio: ampiana [[BUY:flstudio:5000]] ao amin'ny faramparan'ny valiny
+Ohatra raha mividy FL Studio + OBS: [[BUY:flstudio:5000]] [[BUY:obs:10000]]
+TANDREMO: Ampiana signal ONLY rehefa efa mazava fa vonona hividy — tsy raha manontany vidiny fotsiny
+
 FITSIPIKA LEHIBE
 1. Tsy manome lien download mihitsy — ny rafitra automatique ihany no mandefa izany rehefa voamarina ny fandoavana.
 1b. MOMBA NY VOLA ALEFANA:
