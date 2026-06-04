@@ -114,7 +114,7 @@ async function handleTextMessage(psid, text) {
     // Esorina ny BUY signal amin'ny text alefa
     const cleanText = result.text.replace(/\[\[BUY:[^\]]+\]\]/g, '').trim();
     // Esorina ny character tsy UTF-8
-    const safeText = cleanText.replace(/[^\x00-\x7F\u0080-\uFFFF]/g, '');
+    const safeText = Buffer.from(cleanText).toString('utf8').replace(/\uFFFD/g, '');
     await sendTextMessage(psid, safeText || 'Misaotra tompoko! 😊');
 
     // Detect BUY signal
