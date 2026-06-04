@@ -178,11 +178,25 @@ async function chat(psid, userMessage) {
     ...history.map(h => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: h.content })),
     { role: 'user', content: userMessage }
   ];
-  const completion = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages,
-    max_tokens: 700,
-  });
+  let completion;
+  try {
+    completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      max_tokens: 700,
+    });
+  } catch (err) {
+    if (err.message.includes('rate_limit') || err.message.includes('429')) {
+      console.log('[Groq] Rate limit - mampiasa llama-3.1-8b-instant');
+      completion = await groq.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        messages,
+        max_tokens: 700,
+      });
+    } else {
+      throw err;
+    }
+  }
   const reply = completion.choices[0].message.content;
   console.log('[Groq] Valiny: ' + reply.substring(0, 80));
   history.push({ role: 'user', content: userMessage });
