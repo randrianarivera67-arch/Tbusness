@@ -126,8 +126,21 @@ async function handleTextMessage(psid, text) {
       return;
     }
 
-    const reply = await chat(psid, text);
-    await sendTextMessage(psid, reply);
+    const result = await chat(psid, text);
+    const cleanText = result.text.replace(/\[\[BUY:[^\]]+\]\]/g, '').trim();
+    await sendTextMessage(psid, cleanText);
+    const buySignals = [...result.text.matchAll(/\[\[BUY:([^:]+):(\d+)\]\]/g)];
+    if (buySignals.length > 0) {
+      const products = [];
+      for (const signal of buySignals) {
+        const product = getProductById(signal[1]);
+        if (product) products.push(product);
+      }
+      if (products.length > 0) {
+        startPaymentSession(psid, products);
+        console.log('[Payment] Session atomboky:', products.map(p => p.name).join(' + '));
+      }
+    }
   } catch (err) {
     console.error('[handleTextMessage] Error:', err.message);
     await sendTextMessage(psid, 'Miala tsiny, nisy olana kely. Andramo indray azafady.');
